@@ -34,6 +34,7 @@ interface GameStore extends RoomState {
   startGame: () => void
   selectQuestion: (catIdx: number, qIdx: number) => void
   openBuzzer: () => void
+  skipQuestion: () => void
   buzzIn: () => void
   submitAnswer: (text: string) => void
   judgeAnswer: (correct: boolean) => void
@@ -50,10 +51,12 @@ const defaultState: RoomState = {
   categories: [],
   used_cells: {},
   active_question: null,
+  active_chooser_id: '',
   buzz_winner_id: '',
   answer_deadline_ms: 0,
   answer_duration_ms: 30000,
   submitted_answer: '',
+  correct_answer: '',
   answer_pending: false,
 }
 
@@ -114,6 +117,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
         }
         case 'ERROR': {
           const { message } = payload as { message: string }
+          // Suppress "room not found" when we have no active room — this happens when
+          // the page loads and tries to reconnect to a room that no longer exists
+          // (e.g. server restarted). Silently clear the stale key instead.
+          if (message === 'room not found' && !get().room_id) {
+            localStorage.removeItem(ROOM_KEY)
+            return
+          }
           get().addToast(message, 'error')
           break
         }
@@ -143,6 +153,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   startGame() { send('START_GAME', {}) },
   openBuzzer() { send('OPEN_BUZZER', {}) },
+  skipQuestion() { send('SKIP_QUESTION', {}) },
   buzzIn() { send('BUZZ_IN', {}) },
 
   selectQuestion(catIdx, qIdx) {

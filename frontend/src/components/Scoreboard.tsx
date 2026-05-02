@@ -7,7 +7,7 @@ interface Props {
 export default function Scoreboard({ compact = false }: Props) {
   const { players, your_session_id } = useGameStore()
 
-  const sorted = [...players].sort((a, b) => b.score - a.score)
+  const sorted = [...players].filter(p => !p.is_host).sort((a, b) => b.score - a.score)
 
   if (compact) {
     return (

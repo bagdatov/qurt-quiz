@@ -1,29 +1,33 @@
 services:
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: backend-builder
-    command: ["/app/qurt-quiz", "-packs", "/app/packs", "-addr", ":8080"]
+    image: golang:1.22-alpine
+    working_dir: /app
+    command: go run ./cmd/server
     ports:
       - "8080:8080"
     volumes:
-      - ./packs:/app/packs:ro
+      - .:/app
+      - go_modules:/root/go/pkg/mod
     environment:
-      - ADDR=:8080
-      - PACK_DIR=/app/packs
+      ADDR: ":8080"
+      PACK_DIR: "/app/packs"
     restart: unless-stopped
 
   frontend:
     image: node:22-alpine
     working_dir: /app
-    command: sh -c "npm ci --prefer-offline && npm run dev -- --host"
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
     ports:
       - "5173:5173"
     volumes:
       - ./frontend:/app
-      - /app/node_modules
+      - frontend_nm:/app/node_modules
     environment:
-      - VITE_API_BASE=http://localhost:8080
+      # Points Vite's server-side proxy at the backend service, not localhost.
+      BACKEND_URL: "http://backend:8080"
     depends_on:
       - backend
+
+volumes:
+  go_modules:
+  frontend_nm:

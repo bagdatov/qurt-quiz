@@ -37,8 +37,9 @@ type Room struct {
 	quit     chan struct{}
 	closed   bool // guards against double close(r.quit); only written inside run()
 
-	buzzCandidates []string
-	buzzTimer      *time.Timer
+	buzzCandidates  []string
+	buzzWindowOpen  bool // true once the first BUZZ_IN starts the 50ms collection window
+	buzzTimer       *time.Timer
 
 	answerTimer    *time.Timer
 	answerTimerGen int // incremented each time a new answer timer starts
@@ -115,6 +116,8 @@ func (r *Room) handleMsg(c *Client, env Envelope) {
 		r.handleSelectQuestion(c, env.Payload)
 	case MsgOpenBuzzer:
 		r.handleOpenBuzzer(c)
+	case MsgSkipQuestion:
+		r.handleSkipQuestion(c)
 	case MsgBuzzIn:
 		r.handleBuzzIn(c)
 	case MsgSubmitAnswer:
@@ -180,16 +183,17 @@ func (r *Room) handleStartGame(c *Client) {
 		return
 	}
 	r.game.State.Phase = game.PhaseBoard
+	r.game.State.ActiveChooserID = r.randomPlayerID()
 	r.broadcastState()
 }
 
 func (r *Room) handleSelectQuestion(c *Client, raw json.RawMessage) {
-	if !r.isHost(c) {
-		c.sendError("only the host can select questions")
-		return
-	}
 	if r.game.State.Phase != game.PhaseBoard {
 		c.sendError("not in board phase")
+		return
+	}
+	if !r.canChoose(c) {
+		c.sendError("it's not your turn to pick a question")
 		return
 	}
 
@@ -239,11 +243,8 @@ func (r *Room) handleOpenBuzzer(c *Client) {
 
 	r.game.State.Phase = game.PhaseBuzzer
 	r.buzzCandidates = nil
-
-	r.buzzTimer = time.AfterFunc(buzzWindow, func() {
-		r.send(roomMsg{internal: &internalMsg{typ: MsgInternalBuzzResolve}})
-	})
-
+	r.buzzWindowOpen = false
+	// No timer yet — the collection window starts only when the first player buzzes in.
 	r.broadcastState()
 }
 
@@ -256,15 +257,34 @@ func (r *Room) handleBuzzIn(c *Client) {
 		return
 	}
 	r.buzzCandidates = append(r.buzzCandidates, c.getSessionID())
+
+	// Start the 50ms collection window on the first buzz so that near-simultaneous
+	// presses are all gathered before picking a random winner.
+	if !r.buzzWindowOpen {
+		r.buzzWindowOpen = true
+		r.buzzTimer = time.AfterFunc(buzzWindow, func() {
+			r.send(roomMsg{internal: &internalMsg{typ: MsgInternalBuzzResolve}})
+		})
+	}
+}
+
+func (r *Room) handleSkipQuestion(c *Client) {
+	if !r.isHost(c) {
+		c.sendError("only the host can skip a question")
+		return
+	}
+	if r.game.State.Phase != game.PhaseBuzzer && r.game.State.Phase != game.PhaseQuestion {
+		c.sendError("can only skip during question or buzzer phase")
+		return
+	}
+	r.stopBuzzTimer()
+	r.buzzWindowOpen = false
+	// Mark used with no score change so the cell is greyed out on the board.
+	r.concludeQuestion(0, "")
 }
 
 func (r *Room) resolveBuzz() {
-	if r.game.State.Phase != game.PhaseBuzzer {
-		return
-	}
-
-	if len(r.buzzCandidates) == 0 {
-		r.concludeQuestion(0, "")
+	if r.game.State.Phase != game.PhaseBuzzer || len(r.buzzCandidates) == 0 {
 		return
 	}
 
@@ -337,6 +357,10 @@ func (r *Room) handleJudgeAnswer(c *Client, raw json.RawMessage) {
 		ScoreDelta: delta,
 	})
 
+	// Correct answer: winner earns the right to pick the next question.
+	if p.Correct {
+		r.game.State.ActiveChooserID = winnerID
+	}
 	r.concludeQuestion(delta, winnerID)
 }
 
@@ -418,6 +442,7 @@ func (r *Room) stopBuzzTimer() {
 		r.buzzTimer.Stop()
 		r.buzzTimer = nil
 	}
+	r.buzzWindowOpen = false
 }
 
 func (r *Room) stopAnswerTimer() {
@@ -436,6 +461,33 @@ func (r *Room) isHost(c *Client) bool {
 	return p != nil && p.IsHost
 }
 
+// canChoose returns true if the client is allowed to select a question.
+// The active chooser always can; the host may as a fallback when the chooser is disconnected.
+func (r *Room) canChoose(c *Client) bool {
+	sid := c.getSessionID()
+	if sid == r.game.State.ActiveChooserID {
+		return true
+	}
+	chooser := r.game.Players[r.game.State.ActiveChooserID]
+	chooserGone := chooser == nil || !chooser.Connected
+	return r.isHost(c) && chooserGone
+}
+
+// randomPlayerID picks a random connected non-host player session ID.
+// Returns empty string if no eligible players exist.
+func (r *Room) randomPlayerID() string {
+	var ids []string
+	for id, p := range r.game.Players {
+		if !p.IsHost && p.Connected {
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) == 0 {
+		return ""
+	}
+	return ids[rand.Intn(len(ids))]
+}
+
 // --- Broadcasting ---
 
 type roomStatePayload struct {
@@ -447,10 +499,12 @@ type roomStatePayload struct {
 	Categories       []categoryView       `json:"categories,omitempty"`
 	UsedCells        map[string]bool      `json:"used_cells"`
 	ActiveQuestion   *game.ActiveQuestion `json:"active_question,omitempty"`
+	ActiveChooserID  string               `json:"active_chooser_id,omitempty"`
 	BuzzWinnerID     string               `json:"buzz_winner_id,omitempty"`
 	AnswerDeadlineMS int64                `json:"answer_deadline_ms,omitempty"`
 	AnswerDurationMS int64                `json:"answer_duration_ms"`
 	SubmittedAnswer  string               `json:"submitted_answer,omitempty"`
+	CorrectAnswer    string               `json:"correct_answer,omitempty"` // host only
 	AnswerPending    bool                 `json:"answer_pending"`
 }
 
@@ -482,11 +536,17 @@ func (r *Room) broadcastState() {
 			role = "host"
 		}
 
-		// Submitted answer only goes to the host during judging.
+		// Host-only fields: submitted answer during judging, correct answer when a question is active.
 		submittedAnswer := ""
+		correctAnswer := ""
 		answerPending := r.game.State.Phase == game.PhaseJudging
-		if answerPending && role == "host" {
-			submittedAnswer = r.game.State.SubmittedAnswer
+		if role == "host" {
+			if answerPending {
+				submittedAnswer = r.game.State.SubmittedAnswer
+			}
+			if aq := r.game.State.ActiveQuestion; aq != nil && r.game.State.Pack != nil {
+				correctAnswer = r.game.State.Pack.Categories[aq.CategoryIndex].Questions[aq.QuestionIndex].Answer
+			}
 		}
 
 		c.sendMsg(MsgRoomStateUpdate, roomStatePayload{
@@ -498,10 +558,12 @@ func (r *Room) broadcastState() {
 			Categories:       categories,
 			UsedCells:        r.game.State.UsedCells,
 			ActiveQuestion:   r.game.State.ActiveQuestion,
+			ActiveChooserID:  r.game.State.ActiveChooserID,
 			BuzzWinnerID:     r.game.State.BuzzWinnerID,
 			AnswerDeadlineMS: deadlineMS,
 			AnswerDurationMS: r.game.State.AnswerDuration.Milliseconds(),
 			SubmittedAnswer:  submittedAnswer,
+			CorrectAnswer:    correctAnswer,
 			AnswerPending:    answerPending,
 		})
 	}

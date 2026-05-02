@@ -1,7 +1,7 @@
 import { useGameStore } from '../store/gameStore'
 
 export default function BuzzerView() {
-  const { your_role, buzzIn, active_question } = useGameStore()
+  const { your_role, buzzIn, skipQuestion, active_question } = useGameStore()
 
   return (
     <div className="flex flex-col items-center justify-center gap-8 py-8 text-center">
@@ -18,12 +18,18 @@ export default function BuzzerView() {
           >
             BUZZ
           </button>
-          <p className="text-quiz-muted text-sm">First to buzz gets to answer</p>
+          <p className="text-quiz-muted text-sm">Tap to buzz in first</p>
         </>
       ) : (
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-6">
           <div className="w-24 h-24 rounded-full bg-quiz-red/20 border-2 border-quiz-red animate-pulse" />
           <p className="text-quiz-muted">Waiting for a player to buzz in…</p>
+          <button
+            onClick={skipQuestion}
+            className="btn-ghost text-sm"
+          >
+            Skip question
+          </button>
         </div>
       )}
     </div>

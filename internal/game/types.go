@@ -45,14 +45,15 @@ type Room struct {
 }
 
 type GameState struct {
-	Phase          Phase             `json:"phase"`
-	Pack           *pack.QuizPack    `json:"pack,omitempty"`
-	UsedCells      map[string]bool   `json:"used_cells"`
-	ActiveQuestion *ActiveQuestion   `json:"active_question,omitempty"`
-	BuzzWinnerID   string            `json:"buzz_winner_id,omitempty"`
-	AnswerDeadline time.Time         `json:"answer_deadline,omitempty"`
-	AnswerDuration time.Duration     `json:"answer_duration"`
-	SubmittedAnswer string           `json:"submitted_answer,omitempty"`
+	Phase           Phase           `json:"phase"`
+	Pack            *pack.QuizPack  `json:"pack,omitempty"`
+	UsedCells       map[string]bool `json:"used_cells"`
+	ActiveQuestion  *ActiveQuestion `json:"active_question,omitempty"`
+	ActiveChooserID string          `json:"active_chooser_id,omitempty"` // player who picks the next question
+	BuzzWinnerID    string          `json:"buzz_winner_id,omitempty"`
+	AnswerDeadline  time.Time       `json:"answer_deadline,omitempty"`
+	AnswerDuration  time.Duration   `json:"answer_duration"`
+	SubmittedAnswer string          `json:"submitted_answer,omitempty"`
 }
 
 func CellKey(catIdx, qIdx int) string {

@@ -23,12 +23,9 @@ build-frontend:
 
 ## dev — run backend and frontend concurrently (requires 'make install' first)
 dev:
-	@which concurrently > /dev/null 2>&1 || npm install -g concurrently
-	concurrently \
-		--names "backend,frontend" \
-		--prefix-colors "cyan,magenta" \
-		"go run ./cmd/server" \
-		"cd $(FRONTEND) && npm run dev"
+	@trap 'kill 0' EXIT; \
+	go run ./cmd/server & \
+	cd $(FRONTEND) && npm run dev
 
 ## run — run the compiled backend serving the built frontend
 run: build

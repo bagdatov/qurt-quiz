@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import type { Player } from '../types'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useGameStore } from '../store/gameStore'
 import Lobby from '../components/Lobby'
@@ -13,7 +14,7 @@ import Scoreboard from '../components/Scoreboard'
 export default function Room() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { room_id, phase, your_role, enterRoom, sessionId } = useGameStore()
+  const { room_id, phase, your_role, players, enterRoom, sessionId } = useGameStore()
 
   // If we land on this page without a room (e.g. direct link), request to enter.
   useEffect(() => {
@@ -75,6 +76,7 @@ export default function Room() {
         {/* Scoreboard sidebar — visible on board and game phases */}
         {showBoard && (
           <aside className="hidden sm:block w-52 border-l border-quiz-border p-4 overflow-y-auto">
+            <HostCard players={players} />
             <Scoreboard />
           </aside>
         )}
@@ -83,9 +85,35 @@ export default function Room() {
       {/* Mobile scoreboard strip */}
       {showBoard && (
         <div className="sm:hidden border-t border-quiz-border px-4 py-2">
+          <HostCard players={players} compact />
           <Scoreboard compact />
         </div>
       )}
+    </div>
+  )
+}
+
+function HostCard({ players, compact }: { players: Player[]; compact?: boolean }) {
+  const host = players.find(p => p.is_host)
+  if (!host) return null
+
+  if (compact) {
+    return (
+      <div className="flex items-center gap-1.5 mb-2">
+        <span className="text-xs font-bold text-quiz-gold uppercase tracking-wide">Host</span>
+        <span className="text-xs text-quiz-text">{host.name}</span>
+        {!host.connected && <span className="text-xs text-quiz-muted">(away)</span>}
+      </div>
+    )
+  }
+
+  return (
+    <div className="mb-4 pb-4 border-b border-quiz-border/50">
+      <p className="text-xs font-bold text-quiz-gold uppercase tracking-widest mb-1">Host</p>
+      <div className="flex items-center gap-2">
+        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${host.connected ? 'bg-green-400' : 'bg-quiz-muted'}`} />
+        <span className="text-sm text-quiz-text truncate">{host.name}</span>
+      </div>
     </div>
   )
 }

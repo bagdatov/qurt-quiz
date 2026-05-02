@@ -42,10 +42,12 @@ export interface RoomState {
   categories: CategoryView[]
   used_cells: Record<string, boolean>
   active_question: ActiveQuestion | null
+  active_chooser_id: string
   buzz_winner_id: string
   answer_deadline_ms: number
   answer_duration_ms: number
   submitted_answer: string
+  correct_answer: string
   answer_pending: boolean
 }
 

@@ -22,6 +22,7 @@ const (
 	MsgEnterRoom      = "ENTER_ROOM"
 	MsgSelectQuestion = "SELECT_QUESTION"
 	MsgOpenBuzzer     = "OPEN_BUZZER"
+	MsgSkipQuestion   = "SKIP_QUESTION"
 	MsgBuzzIn         = "BUZZ_IN"
 	MsgSubmitAnswer   = "SUBMIT_ANSWER"
 	MsgJudgeAnswer    = "JUDGE_ANSWER"

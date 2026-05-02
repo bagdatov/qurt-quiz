@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useGameStore } from '../store/gameStore'
 
 interface PackInfo {
@@ -9,16 +9,19 @@ interface PackInfo {
 
 export default function Home() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const joinParam = searchParams.get('join') ?? ''
+
   const { createRoom, enterRoom, room_id } = useGameStore()
 
   const [packs, setPacks] = useState<PackInfo[]>([])
   const [name, setName] = useState('')
   const [packId, setPackId] = useState('')
   const [lang, setLang] = useState('')
-  const [joinCode, setJoinCode] = useState('')
-  const [tab, setTab] = useState<'create' | 'join'>('create')
+  const [joinCode, setJoinCode] = useState(joinParam.toUpperCase())
+  const [tab, setTab] = useState<'create' | 'join'>(joinParam ? 'join' : 'create')
 
-  // Navigate to room once we receive a room_id from the server.
+  // Navigate to room once the server responds with a room_id.
   useEffect(() => {
     if (room_id) navigate(`/room/${room_id}`)
   }, [room_id, navigate])
@@ -88,6 +91,7 @@ export default function Home() {
                 value={name}
                 onChange={e => setName(e.target.value)}
                 maxLength={24}
+                autoFocus
                 required
               />
             </Field>
@@ -129,6 +133,7 @@ export default function Home() {
                 value={name}
                 onChange={e => setName(e.target.value)}
                 maxLength={24}
+                autoFocus
                 required
               />
             </Field>
@@ -144,7 +149,11 @@ export default function Home() {
               />
             </Field>
 
-            <button type="submit" className="btn-primary mt-2" disabled={!name.trim() || joinCode.length < 6}>
+            <button
+              type="submit"
+              className="btn-primary mt-2"
+              disabled={!name.trim() || joinCode.length < 6}
+            >
               Join Room
             </button>
           </form>
