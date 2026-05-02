@@ -1,0 +1,29 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend-builder
+    command: ["/app/qurt-quiz", "-packs", "/app/packs", "-addr", ":8080"]
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./packs:/app/packs:ro
+    environment:
+      - ADDR=:8080
+      - PACK_DIR=/app/packs
+    restart: unless-stopped
+
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm ci --prefer-offline && npm run dev -- --host"
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_BASE=http://localhost:8080
+    depends_on:
+      - backend

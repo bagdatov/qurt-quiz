@@ -1,0 +1,57 @@
+{
+  "id": "sample",
+  "lang": "en",
+  "title": "General Knowledge",
+  "categories": [
+    {
+      "name": "Science",
+      "questions": [
+        { "value": 100, "text": "What gas do plants absorb during photosynthesis?", "answer": "CO2 / Carbon Dioxide" },
+        { "value": 200, "text": "How many bones are in the adult human body?", "answer": "206" },
+        { "value": 300, "text": "What is the chemical symbol for gold?", "answer": "Au" },
+        { "value": 400, "text": "At what temperature (°C) does water boil at sea level?", "answer": "100" },
+        { "value": 500, "text": "What is the powerhouse of the cell?", "answer": "Mitochondria" }
+      ]
+    },
+    {
+      "name": "Geography",
+      "questions": [
+        { "value": 100, "text": "What is the capital of France?", "answer": "Paris" },
+        { "value": 200, "text": "Which is the longest river in the world?", "answer": "Nile" },
+        { "value": 300, "text": "On which continent is the Sahara Desert located?", "answer": "Africa" },
+        { "value": 400, "text": "What country has the most natural lakes in the world?", "answer": "Canada" },
+        { "value": 500, "text": "What is the smallest country in the world by area?", "answer": "Vatican City" }
+      ]
+    },
+    {
+      "name": "History",
+      "questions": [
+        { "value": 100, "text": "In what year did World War II end?", "answer": "1945" },
+        { "value": 200, "text": "Who was the first President of the United States?", "answer": "George Washington" },
+        { "value": 300, "text": "In what year did the Berlin Wall fall?", "answer": "1989" },
+        { "value": 400, "text": "Which ancient wonder was located in Alexandria, Egypt?", "answer": "The Lighthouse of Alexandria" },
+        { "value": 500, "text": "Who wrote the Communist Manifesto alongside Friedrich Engels?", "answer": "Karl Marx" }
+      ]
+    },
+    {
+      "name": "Pop Culture",
+      "questions": [
+        { "value": 100, "text": "How many rings are in the Olympic symbol?", "answer": "5" },
+        { "value": 200, "text": "Which band recorded 'Bohemian Rhapsody'?", "answer": "Queen" },
+        { "value": 300, "text": "What fictional city is Batman's home?", "answer": "Gotham City" },
+        { "value": 400, "text": "In which film does the line 'I'll be back' first appear?", "answer": "The Terminator" },
+        { "value": 500, "text": "Which novel begins with 'Call me Ishmael'?", "answer": "Moby-Dick" }
+      ]
+    },
+    {
+      "name": "Math",
+      "questions": [
+        { "value": 100, "text": "What is 12 × 12?", "answer": "144" },
+        { "value": 200, "text": "What is the value of π rounded to two decimal places?", "answer": "3.14" },
+        { "value": 300, "text": "What is the square root of 144?", "answer": "12" },
+        { "value": 400, "text": "What is 15% of 200?", "answer": "30" },
+        { "value": 500, "text": "If a triangle has angles of 90° and 45°, what is the third angle?", "answer": "45°" }
+      ]
+    }
+  ]
+}
